@@ -38,7 +38,6 @@ func main() {
     resp, err := httputils.DoWithRetry(ctx, httpClient, req, 3, nil)
     if err != nil {
         // Handle error
-        return
     }
     defer resp.Body.Close()
     
@@ -76,7 +75,6 @@ func main() {
     resp, err := retryableClient.MakeRequest(ctx, req)
     if err != nil {
         // Handle error
-        return
     }
     defer resp.Body.Close()
     
@@ -234,4 +232,4 @@ Sometimes I use different HTTP clients and wanted to make it easier to work with
 
 ## Acknowledgments
 
-The decompression functionality in this library includes code adapted from the [Hyper Solutions Go SDK](https://github.com/Hyper-Solutions/hyper-sdk-go). We thank the Hyper Solutions team for their contributions to the Go ecosystem.
+The decompression functionality in this library includes code adapted from the [Hyper Solutions Go SDK](https://github.com/Hyper-Solutions/hyper-sdk-go).
