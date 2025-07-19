@@ -180,7 +180,7 @@ func TestMakeRequestSuccessful(t *testing.T) {
 		req, _ := http.NewRequest("GET", "http://example.com", nil)
 		ctx := context.Background()
 
-		resp, err := client.MakeRequest(ctx, req)
+		resp, err := client.DoWithRetry(ctx, req)
 
 		require.NoError(t, err)
 		require.NotNil(t, resp)
@@ -204,7 +204,7 @@ func TestMakeRequestSuccessful(t *testing.T) {
 		req, _ := tlsHttp.NewRequest("GET", "http://example.com", nil)
 		ctx := context.Background()
 
-		resp, err := client.MakeRequest(ctx, req)
+		resp, err := client.DoWithRetry(ctx, req)
 
 		require.NoError(t, err)
 		require.NotNil(t, resp)
@@ -240,7 +240,7 @@ func TestMakeRequestRetries(t *testing.T) {
 		req, _ := http.NewRequest("GET", "http://example.com", nil)
 		ctx := context.Background()
 
-		resp, err := client.MakeRequest(ctx, req)
+		resp, err := client.DoWithRetry(ctx, req)
 
 		require.NoError(t, err)
 		require.NotNil(t, resp)
@@ -277,7 +277,7 @@ func TestMakeRequestRetries(t *testing.T) {
 		req, _ := http.NewRequest("GET", "http://example.com", nil)
 		ctx := context.Background()
 
-		resp, err := client.MakeRequest(ctx, req)
+		resp, err := client.DoWithRetry(ctx, req)
 
 		require.Error(t, err)
 		require.Nil(t, resp)
@@ -344,7 +344,7 @@ func TestMakeRequestNonRetryableErrors(t *testing.T) {
 			req, _ := http.NewRequest("GET", "http://example.com", nil)
 			ctx := context.Background()
 
-			resp, err := client.MakeRequest(ctx, req)
+			resp, err := client.DoWithRetry(ctx, req)
 
 			require.Error(t, err)
 			require.Nil(t, resp)
@@ -382,7 +382,7 @@ func TestMakeRequestContextCancellation(t *testing.T) {
 		// Cancel context immediately after starting the request
 		cancel()
 
-		resp, err := client.MakeRequest(ctx, req)
+		resp, err := client.DoWithRetry(ctx, req)
 
 		require.Error(t, err)
 		require.Nil(t, resp)
@@ -418,7 +418,7 @@ func TestMakeRequestContextCancellation(t *testing.T) {
 		// Add a small delay to ensure timeout
 		time.Sleep(5 * time.Millisecond)
 
-		resp, err := client.MakeRequest(ctx, req)
+		resp, err := client.DoWithRetry(ctx, req)
 
 		require.Error(t, err)
 		require.Nil(t, resp)
@@ -511,7 +511,7 @@ func TestMakeRequestEdgeCases(t *testing.T) {
 		req, _ := http.NewRequest("GET", "http://example.com", nil)
 		ctx := context.Background()
 
-		resp, err := client.MakeRequest(ctx, req)
+		resp, err := client.DoWithRetry(ctx, req)
 
 		require.Error(t, err)
 		require.Nil(t, resp)
@@ -532,7 +532,7 @@ func TestMakeRequestEdgeCases(t *testing.T) {
 		req, _ := http.NewRequest("GET", "http://example.com", nil)
 		ctx := context.Background()
 
-		resp, err := client.MakeRequest(ctx, req)
+		resp, err := client.DoWithRetry(ctx, req)
 
 		require.Error(t, err)
 		require.Nil(t, resp)
@@ -549,7 +549,7 @@ func TestMakeRequestEdgeCases(t *testing.T) {
 		ctx := context.Background()
 
 		// This should still work as the mock client doesn't validate the request
-		resp, err := client.MakeRequest(ctx, nil)
+		resp, err := client.DoWithRetry(ctx, nil)
 
 		require.NoError(t, err)
 		require.NotNil(t, resp)
@@ -622,7 +622,7 @@ func TestMakeRequestIntegration(t *testing.T) {
 		req, _ := http.NewRequest("GET", "http://example.com", nil)
 		ctx := context.Background()
 
-		resp, err := client.MakeRequest(ctx, req)
+		resp, err := client.DoWithRetry(ctx, req)
 
 		require.NoError(t, err)
 		require.NotNil(t, resp)
@@ -657,7 +657,7 @@ func BenchmarkMakeRequestSuccess(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		mockClient.callCount = 0 // Reset for each iteration
-		_, err := client.MakeRequest(ctx, req)
+		_, err := client.DoWithRetry(ctx, req)
 		if err != nil {
 			b.Fatal(err)
 		}
@@ -687,7 +687,7 @@ func BenchmarkMakeRequestWithRetries(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		mockClient.callCount = i * 2 // Adjust for multiple calls per iteration
-		_, err := client.MakeRequest(ctx, req)
+		_, err := client.DoWithRetry(ctx, req)
 		if err != nil {
 			b.Fatal(err)
 		}

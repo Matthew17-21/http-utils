@@ -24,7 +24,7 @@ func main() {
 	req.Header.Set("Accept-Encoding", "br, gzip, deflate")
 
 	// Perform the request
-	resp, err := retryableClient.MakeRequest(context.Background(), req)
+	resp, err := retryableClient.DoWithRetry(context.Background(), req)
 	if err != nil {
 		log.Printf("Error making request: %v\n", err)
 		return

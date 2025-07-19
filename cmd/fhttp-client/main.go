@@ -24,7 +24,7 @@ func main() {
 
 	// Make a request
 	// resp, err := client.Do(req)
-	resp, err := retryableClient.MakeRequest(context.Background(), req)
+	resp, err := retryableClient.DoWithRetry(context.Background(), req)
 	if err != nil {
 		log.Fatalln("Error making HTTP request:", err)
 	}

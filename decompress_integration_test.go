@@ -79,7 +79,7 @@ func runCompressionTest(t *testing.T, client *RetryableHTTPClient[*http.Client, 
 	req.Header.Set("Accept-Encoding", tc.acceptEncoding)
 
 	// Perform the request
-	resp, err := client.MakeRequest(context.Background(), req)
+	resp, err := client.DoWithRetry(context.Background(), req)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 

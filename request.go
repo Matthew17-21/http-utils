@@ -86,7 +86,7 @@ func WithLogger[T Doer[Rq, Rp], Rq Request, Rp Response](logger Logger) ClientOp
 	}
 }
 
-// MakeRequest attempts to send an HTTP request using the provided HTTP client.
+// DoWithRetry attempts to send an HTTP request using the provided HTTP client.
 //
 // It will retry the request up to numRetries times in case of network-related errors.
 // The function uses intelligent error classification to determine which errors are retryable:
@@ -101,7 +101,7 @@ func WithLogger[T Doer[Rq, Rp], Rq Request, Rp Response](logger Logger) ClientOp
 // Returns:
 //   - Rp: The HTTP response if successful
 //   - error: An error if the request fails after all retry attempts
-func (c *RetryableHTTPClient[T, Rq, Rp]) MakeRequest(ctx context.Context, req Rq) (Rp, error) {
+func (c *RetryableHTTPClient[T, Rq, Rp]) DoWithRetry(ctx context.Context, req Rq) (Rp, error) {
 	return DoWithRetry(ctx, c.client, req, c.numRetries, c.logger)
 }
 
