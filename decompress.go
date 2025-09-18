@@ -3,8 +3,11 @@ package httputils
 
 import (
 	"bytes"
+	"fmt"
 	"io"
+	"net/http"
 	"net/textproto"
+	"strconv"
 
 	"github.com/andybalholm/brotli"
 	"github.com/klauspost/compress/flate"
@@ -65,6 +68,31 @@ func DecompressResponse(headers map[string][]string, body io.ReadCloser) ([]byte
 	default: // Unknown encoding so just return the body as is
 		return io.ReadAll(body)
 	}
+}
+
+// DecompressResponseBody decompresses the response body based on the Content-Encoding header
+// and replaces the Response.Body with the decompressed data. This way, consumers can read
+// directly from resp.Body without having to deal with compression formats.
+func DecompressResponseBody(resp *http.Response) error {
+	if resp == nil || resp.Body == nil {
+		return nil
+	}
+
+	// Decompress the body
+	data, err := DecompressResponse(resp.Header, resp.Body)
+	if err != nil {
+		return fmt.Errorf("error decompressing response: %w", err)
+	}
+
+	// Replace the body with the decompressed version
+	// Wrap it in an io.NopCloser so it satisfies io.ReadCloser
+	resp.Body = io.NopCloser(bytes.NewReader(data))
+
+	// Since it's now decompressed, clear the Content-Encoding header
+	resp.Header.Del("Content-Encoding")
+	resp.Header.Set("Content-Length", strconv.Itoa(len(data)))
+
+	return nil
 }
 
 // GzipDecompress decompresses gzip-compressed data using a pooled gzip.Reader for better performance.
