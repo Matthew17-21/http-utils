@@ -7,16 +7,16 @@ import (
 	"io"
 	"net/http"
 	"net/textproto"
-	"strconv"
+
+	"strings"
+	"sync"
 
 	"github.com/andybalholm/brotli"
+	fhttp "github.com/bogdanfinn/fhttp"
 	"github.com/klauspost/compress/flate"
 	"github.com/klauspost/compress/gzip"
 	"github.com/klauspost/compress/zlib"
 	"github.com/klauspost/compress/zstd"
-
-	"strings"
-	"sync"
 )
 
 // ResponseWithHeader is a constraint that ensures the response type has a Header and Body field.
@@ -70,28 +70,31 @@ func DecompressResponse(headers map[string][]string, body io.ReadCloser) ([]byte
 	}
 }
 
+// AnyResponse is a type set of supported response pointer types.
+type AnyResponse interface {
+	*http.Response | *fhttp.Response
+}
+
 // DecompressResponseBody decompresses the response body based on the Content-Encoding header
 // and replaces the Response.Body with the decompressed data. This way, consumers can read
 // directly from resp.Body without having to deal with compression formats.
-func DecompressResponseBody(resp *http.Response) error {
-	if resp == nil || resp.Body == nil {
+//
+// TODO: Unit tests
+func DecompressResponseBody[T AnyResponse](resp T) error {
+	// T is a pointer type per the constraint, so this is safe.
+	if any(resp) == nil || getBody(resp) == nil {
 		return nil
 	}
 
-	// Decompress the body
-	data, err := DecompressResponse(resp.Header, resp.Body)
+	// Decompress using your existing helper:
+	//   DecompressResponse(headers map[string][]string, body io.ReadCloser) ([]byte, error)
+	data, err := DecompressResponse(getHeader(resp), getBody(resp))
 	if err != nil {
 		return fmt.Errorf("error decompressing response: %w", err)
 	}
 
-	// Replace the body with the decompressed version
-	// Wrap it in an io.NopCloser so it satisfies io.ReadCloser
-	resp.Body = io.NopCloser(bytes.NewReader(data))
-
-	// Since it's now decompressed, clear the Content-Encoding header
-	resp.Header.Del("Content-Encoding")
-	resp.Header.Set("Content-Length", strconv.Itoa(len(data)))
-
+	// Replace Body
+	setBody(resp, io.NopCloser(bytes.NewReader(data)))
 	return nil
 }
 
@@ -159,4 +162,53 @@ func DeflateDecompress(body io.ReadCloser) ([]byte, error) {
 	rawReader := flate.NewReader(bytes.NewReader(compressedData))
 	defer rawReader.Close()
 	return io.ReadAll(rawReader)
+}
+
+// getHeader extracts the Header map from the response.
+// Since *http.Response and *fhttp.Response both expose a Header field
+// of type http.Header, this helper uses a type switch to return it
+// in a unified way.
+//
+// TODO: Unit tests
+func getHeader[T AnyResponse](r T) map[string][]string {
+	switch v := any(r).(type) {
+	case *http.Response:
+		return v.Header
+	case *fhttp.Response:
+		return v.Header
+	default:
+		// Should never happen because of the AnyResponse constraint
+		return nil
+	}
+}
+
+// getBody extracts the Body (io.ReadCloser) from the response.
+// Both response types define Body the same way, but we can’t
+// access it directly through a generic type, so we normalize
+// access via this helper.
+//
+// TODO: Unit tests
+func getBody[T AnyResponse](r T) io.ReadCloser {
+	switch v := any(r).(type) {
+	case *http.Response:
+		return v.Body
+	case *fhttp.Response:
+		return v.Body
+	default:
+		return nil
+	}
+}
+
+// setBody replaces the Body on the given response with the provided io.ReadCloser.
+// This is used after we decompress the original compressed body and need
+// to swap in the new decompressed data stream.
+//
+// TODO: Unit tests
+func setBody[T AnyResponse](r T, b io.ReadCloser) {
+	switch v := any(r).(type) {
+	case *http.Response:
+		v.Body = b
+	case *fhttp.Response:
+		v.Body = b
+	}
 }
